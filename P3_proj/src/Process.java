@@ -30,6 +30,8 @@ public class Process implements Constants {
 		return cpuTimeNeeded;
 	}
 
+	private long tidTilNesteIO;
+
 	public long getAvgIoInterval() {
 		return avgIoInterval;
 	}
@@ -66,10 +68,11 @@ public class Process implements Constants {
 		// Memory need varies from 100 kB to 25% of memory size
 		memoryNeeded = 100 + (long) (Math.random() * (memorySize / 4 - 100));
 		// CPU time needed varies from 100 to 10000 milliseconds
-		cpuTimeNeeded = 100 + (long) (Math.random() * 9900);
+		cpuTimeNeeded = 100 + (long) (Math.random() * 2900);
 		// Average interval between I/O requests varies from 1% to 25% of CPU
 		// time needed
 		avgIoInterval = (1 + (long) (Math.random() * 25)) * cpuTimeNeeded / 100;
+		tidTilNesteIO = avgIoInterval;
 		// The first and latest event involving this process is its creation
 		timeOfLastEvent = creationTime;
 		// Assign a process ID
@@ -150,8 +153,19 @@ public class Process implements Constants {
 
 	public void receiveCPUtime(long maxCpuTime) {
 		timeSpentInCpu += maxCpuTime;
-
+		tidTilNesteIO = tidTilNesteIO - maxCpuTime;
 	}
 
-	// Add more methods as needed
+	public long timeUntillNextIoOperation() {
+		if (tidTilNesteIO < 0)
+			tidTilNesteIO = 0;
+		return tidTilNesteIO;
+	}
+
+	public void performIO() {
+		tidTilNesteIO = (1 + (long) (Math.random() * 25)) * cpuTimeNeeded / 100;
+		if (tidTilNesteIO >= getCpuTimeLeft()) {
+			tidTilNesteIO = cpuTimeNeeded + 1;
+		}
+	}
 }

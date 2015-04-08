@@ -1,4 +1,5 @@
 import java.io.*;
+import java.time.zone.ZoneOffsetTransitionRule.TimeDefinition;
 
 /**
  * The main class of the P3 exercise. This class is only partially complete.
@@ -124,6 +125,9 @@ public class Simulator implements Constants {
 			endIoOperation();
 			break;
 		}
+		if (cpu.getCurrent() != null)
+			System.out.println("\n" + cpu.getCurrent().getProcessId() + ": "
+					+ cpu.getCurrent().getCpuTimeLeft());
 	}
 
 	/**
@@ -157,8 +161,6 @@ public class Simulator implements Constants {
 			if (cpu.size() == 1) {
 				switchProcess();
 			}
-			Event e = new Event(IO_REQUEST, clock + p.getAvgIoInterval());
-			eventQueue.insertEvent(e);
 			// Also add new events to the event queue if needed
 			if (eventQueue.isEmpty()) {
 				createProcess();
@@ -185,15 +187,24 @@ public class Simulator implements Constants {
 			Event e = new Event(SWITCH_PROCESS, clock + maxCpuTime);
 			eventQueue.insertEvent(e);
 		} else {
-			System.out.println(active.getProcessId() + ": "
-					+ active.getCpuTimeLeft());
+
 			Event e = null;
-			if (maxCpuTime < cpu.getCurrent().getCpuTimeLeft()) {
-				e = new Event(SWITCH_PROCESS, clock + maxCpuTime);
-				active.receiveCPUtime(maxCpuTime);
-			} else
+			if (maxCpuTime >= cpu.getCurrent().getCpuTimeLeft()) {
+
 				e = new Event(END_PROCESS, clock
 						+ cpu.getCurrent().getCpuTimeLeft());
+
+			} else if (maxCpuTime > cpu.getCurrent()
+					.timeUntillNextIoOperation()) {
+				e = new Event(IO_REQUEST, clock
+						+ cpu.getCurrent().timeUntillNextIoOperation());
+
+			} else {
+				e = new Event(SWITCH_PROCESS, clock + maxCpuTime);
+
+				active.receiveCPUtime(maxCpuTime);
+
+			}
 			eventQueue.insertEvent(e);
 		}
 	}
@@ -227,6 +238,8 @@ public class Simulator implements Constants {
 		io.insert(o);
 		Event e = new Event(END_IO, clock + avgIoTime);
 		eventQueue.insertEvent(e);
+		e = new Event(SWITCH_PROCESS, clock);
+		eventQueue.insertEvent(e);
 	}
 
 	/**
@@ -236,8 +249,7 @@ public class Simulator implements Constants {
 	private void endIoOperation() {
 		Process o = io.remove();
 		cpu.insert(o);
-		Event e = new Event(IO_REQUEST, clock + o.getAvgIoInterval());
-		eventQueue.insertEvent(e);
+		o.performIO();
 	}
 
 	/**
@@ -271,7 +283,7 @@ public class Simulator implements Constants {
 		System.out.println("Please input system parameters: ");
 
 		System.out.print("Memory size (KB): ");
-		long memorySize = 4096; // readLong(reader);
+		long memorySize = 8096; // readLong(reader);
 		while (memorySize < 400) {
 			System.out
 					.println("Memory size must be at least 400 KB. Specify memory size (KB): ");
@@ -279,13 +291,13 @@ public class Simulator implements Constants {
 		}
 
 		System.out.print("Maximum uninterrupted cpu time for a process (ms): ");
-		long maxCpuTime = 100; // readLong(reader);
+		long maxCpuTime = 500; // readLong(reader);
 
 		System.out.print("Average I/O operation time (ms): ");
-		long avgIoTime = 50; // readLong(reader);
+		long avgIoTime = 220; // readLong(reader);
 
 		System.out.print("Simulation length (ms): ");
-		long simulationLength = 10000; // readLong(reader);
+		long simulationLength = 1000000; // readLong(reader);
 		while (simulationLength < 1) {
 			System.out
 					.println("Simulation length must be at least 1 ms. Specify simulation length (ms): ");
@@ -293,7 +305,7 @@ public class Simulator implements Constants {
 		}
 
 		System.out.print("Average time between process arrivals (ms): ");
-		long avgArrivalInterval = 200; // readLong(reader);
+		long avgArrivalInterval = 100; // readLong(reader);
 
 		SimulationGui gui = new SimulationGui(memorySize, maxCpuTime,
 				avgIoTime, simulationLength, avgArrivalInterval);
