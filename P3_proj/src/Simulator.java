@@ -233,11 +233,12 @@ public class Simulator implements Constants {
 	 */
 	private void processIoRequest() {
 		Process o = cpu.removeActive();
-		io.insert(o);
-		if (io.size() == 1) {
+		o.receiveCPUtime(o.timeUntillNextIoOperation());
+		if (io.getCurrent() == null) {
 			Event e = new Event(END_IO, clock + avgIoTime);
 			eventQueue.insertEvent(e);
 		}
+		io.insert(o);
 		Event e = new Event(SWITCH_PROCESS, clock);
 		eventQueue.insertEvent(e);
 	}
@@ -247,15 +248,16 @@ public class Simulator implements Constants {
 	 * done with its I/O operation.
 	 */
 	private void endIoOperation() {
-		Process o = io.getCurrent();
-		cpu.insert(o);
-		o.performIO();
 		if (io.size() > 0) {
 			Event e = new Event(END_IO, clock + avgIoTime);
 			eventQueue.insertEvent(e);
-			Process current = io.remove();
-			gui.setIoActive(io.getCurrent());
 		}
+		Process o = io.remove();
+		cpu.insert(o);
+		o.performIO();
+
+		gui.setIoActive(io.getCurrent());
+
 	}
 
 	/**

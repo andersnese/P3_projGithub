@@ -19,7 +19,10 @@ public class IO {
 
 	public Process remove() {
 		Process c = getCurrent();
-		setCurrent((Process) ioQueue.removeNext());
+		if (size() > 0)
+			setCurrent((Process) ioQueue.removeNext());
+		else
+			setCurrent(null);
 		return c;
 	}
 
