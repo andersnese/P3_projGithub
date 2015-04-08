@@ -125,9 +125,6 @@ public class Simulator implements Constants {
 			endIoOperation();
 			break;
 		}
-		if (cpu.getCurrent() != null)
-			System.out.println("\n" + cpu.getCurrent().getProcessId() + ": "
-					+ cpu.getCurrent().getCpuTimeLeft());
 	}
 
 	/**
@@ -183,6 +180,7 @@ public class Simulator implements Constants {
 	 */
 	private void switchProcess() {
 		Process active = cpu.switchProcess();
+		gui.setCpuActive(active);
 		if (active == null) {
 			Event e = new Event(SWITCH_PROCESS, clock + maxCpuTime);
 			eventQueue.insertEvent(e);
@@ -236,9 +234,11 @@ public class Simulator implements Constants {
 	private void processIoRequest() {
 		Process o = cpu.removeActive();
 		io.insert(o);
-		Event e = new Event(END_IO, clock + avgIoTime);
-		eventQueue.insertEvent(e);
-		e = new Event(SWITCH_PROCESS, clock);
+		if (io.size() == 1) {
+			Event e = new Event(END_IO, clock + avgIoTime);
+			eventQueue.insertEvent(e);
+		}
+		Event e = new Event(SWITCH_PROCESS, clock);
 		eventQueue.insertEvent(e);
 	}
 
@@ -247,9 +247,15 @@ public class Simulator implements Constants {
 	 * done with its I/O operation.
 	 */
 	private void endIoOperation() {
-		Process o = io.remove();
+		Process o = io.getCurrent();
 		cpu.insert(o);
 		o.performIO();
+		if (io.size() > 0) {
+			Event e = new Event(END_IO, clock + avgIoTime);
+			eventQueue.insertEvent(e);
+			Process current = io.remove();
+			gui.setIoActive(io.getCurrent());
+		}
 	}
 
 	/**

@@ -2,6 +2,7 @@ public class IO {
 
 	private Queue ioQueue;
 	private Statistics statistics;
+	private Process current = null;
 
 	public IO(Queue ioQueue, Statistics statistics) {
 		this.ioQueue = ioQueue;
@@ -9,12 +10,30 @@ public class IO {
 	}
 
 	public void insert(Object o) {
-		ioQueue.insert(o);
+		if (getCurrent() == null)
+			setCurrent((Process) o);
+		else
+			ioQueue.insert(o);
 
 	}
 
 	public Process remove() {
-		return (Process) ioQueue.removeNext();
+		Process c = getCurrent();
+		setCurrent((Process) ioQueue.removeNext());
+		return c;
+	}
+
+	public int size() {
+		return ioQueue.getQueueLength();
+	}
+
+	public Process getCurrent() {
+		return current;
+	}
+
+	private void setCurrent(Process current) {
+		this.current = current;
+
 	}
 
 }
