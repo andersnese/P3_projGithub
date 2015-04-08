@@ -180,7 +180,7 @@ public class Simulator implements Constants {
 	 */
 	private void switchProcess() {
 		Process active = cpu.switchProcess();
-		gui.setCpuActive(active);
+		gui.setCpuActive(cpu.getCurrent());
 		if (active == null) {
 			Event e = new Event(SWITCH_PROCESS, clock + maxCpuTime);
 			eventQueue.insertEvent(e);
@@ -212,19 +212,21 @@ public class Simulator implements Constants {
 	 */
 	private void endProcess() {
 		Process o = cpu.removeActive();
+		gui.setCpuActive(cpu.getCurrent());
 		memory.processCompleted(o);
 		Process active = cpu.getCurrent();
 		Event e = null;
 		if (active == null) {
 			e = new Event(SWITCH_PROCESS, clock + maxCpuTime);
 			eventQueue.insertEvent(e);
+		} else {
+			if (maxCpuTime < active.getCpuTimeLeft()) {
+				e = new Event(SWITCH_PROCESS, clock + maxCpuTime);
+				active.receiveCPUtime(maxCpuTime);
+			} else
+				e = new Event(END_PROCESS, clock + active.getCpuTimeLeft());
+			eventQueue.insertEvent(e);
 		}
-		if (maxCpuTime < active.getCpuTimeLeft()) {
-			e = new Event(SWITCH_PROCESS, clock + maxCpuTime);
-			active.receiveCPUtime(maxCpuTime);
-		} else
-			e = new Event(END_PROCESS, clock + active.getCpuTimeLeft());
-		eventQueue.insertEvent(e);
 	}
 
 	/**
@@ -233,7 +235,9 @@ public class Simulator implements Constants {
 	 */
 	private void processIoRequest() {
 		Process o = cpu.removeActive();
-		o.receiveCPUtime(o.timeUntillNextIoOperation());
+		gui.setCpuActive(cpu.getCurrent());
+		if (o != null)
+			o.receiveCPUtime(o.timeUntillNextIoOperation());
 		if (io.getCurrent() == null) {
 			Event e = new Event(END_IO, clock + avgIoTime);
 			eventQueue.insertEvent(e);

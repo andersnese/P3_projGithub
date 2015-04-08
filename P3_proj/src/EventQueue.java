@@ -9,6 +9,8 @@ public class EventQueue {
 	/** The list of events */
 	private ArrayList events;
 
+	int maxNewProcesses = 100;
+
 	/**
 	 * Creates a new Event Queue.
 	 */
@@ -24,6 +26,12 @@ public class EventQueue {
 	 *            The event to be inserted.
 	 */
 	public void insertEvent(Event event) {
+		if (event.getType() == Constants.NEW_PROCESS) {
+			maxNewProcesses--;
+			if (maxNewProcesses < 0) {
+				// Nothing
+			}
+		}
 		if (event != null) {
 			events.add(event);
 			Collections.sort(events);
